@@ -27,6 +27,10 @@
 #include <map>
 #include <thread>
 
+// axk339 - add playback history
+#include <fstream>
+// axk339 - END
+
 using namespace ArgusTV;
 
 #define SIGNALQUALITY_INTERVAL 10
@@ -1648,6 +1652,33 @@ bool cPVRClientArgusTV::OpenRecordedStream(const kodi::addon::PVRRecording& reci
 
   m_bRecordingPlayback = true;
 
+  // axk339 - add playback history
+  
+  std::string str1;
+  std::string str2;
+  char buffer[80];
+  time_t rawtime;
+  struct tm * timeinfo;
+  rawtime = time(NULL);
+  timeinfo = localtime(&rawtime);
+  strftime (buffer,80,"%Y-%m",timeinfo);
+  
+  std::ofstream outfile;
+  outfile.open("home/osmc/history/playlist.OSMC." + std::string(buffer) + ".txt", std::ios_base::app); // append instead of overwrite
+  
+  strftime (buffer,80,"%d.%m.%Y %H:%M:%S",timeinfo);
+  str1 = std::string(buffer);
+  rawtime = recinfo.GetRecordingTime();
+  timeinfo = localtime(&rawtime);
+  strftime (buffer,80,"%d.%m.%Y %H:%M:%S",timeinfo);
+  str2 = std::string(buffer);
+  
+  outfile << str1 + ",Aktuell,"+ recinfo.GetDirectory() + "," + recinfo.GetTitle() + "," + str2 + ",0," + UNCname.c_str() + "\n";  
+  //timestamp,category,folder(=schedule),recording-title, recording-time,n/a(was play counter,recording file
+  //24.09.2020 21:02:47,Aktuell,Wer wird Millionär,Wer wird Millionär? - Das große Danke-Special,21.09.2020 20:12:00,220,\\NASSERVER\Aufzeichnungen\Aktuell\Wer wird Millionär\Wer wird Millionär - Das große Danke-Special_RTL Television_2020-09-21_20-15.ts      
+  
+  // axk339 - END
+  
   return true;
 }
 
