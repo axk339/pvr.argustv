@@ -678,6 +678,14 @@ PVR_ERROR cPVRClientArgusTV::GetRecordingsAmount(bool deleted, int& amount)
   return PVR_ERROR_SERVER_ERROR;
 }
 
+// axk339 - add reclist buffering
+int buffer;
+std::vector<cRecording> bufferrec;
+std::vector<std::string> bufferdel;
+std::string bufferspace;
+std::map<std::string, int> bufferwatch;
+// axk339 - END
+
 PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
                                            kodi::addon::PVRRecordingsResultSet& results)
 {
@@ -686,9 +694,23 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
   int iNumRecordings = 0;
 
   m_RecordingsMap.clear();
-
+  
+  // axk339 - add reclist buffering
+  /*
   kodi::Log(ADDON_LOG_DEBUG, "RequestRecordingsList()");
+  */
+  kodi::Log(ADDON_LOG_INFO, "RequestRecordingsList() use buffer = %d", buffer);
+  // axk339 - END 
+  
   auto startTime = std::chrono::system_clock::now();
+  // axk339 - add reclist buffering
+  // only update buffer if needed
+  if (buffer == 0) 
+  {
+  bufferrec.clear();
+  bufferwatch.clear();
+  // axk339 - END 
+  
   retval = m_rpc.GetRecordingGroupByTitle(recordinggroupresponse);
   if (retval >= 0)
   {
@@ -712,6 +734,30 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 
             if (recording.Parse(recordingsbytitleresponse[recordingindex]))
             {
+			
+  // axk339 - add reclist buffering
+  // push recording in buffer instead and keep for the future
+			  bufferrec.push_back(recording);
+			}
+		  }
+		}
+	  }
+	}
+  } //GetRecordingGroupByTitle
+  
+  kodi::Log(ADDON_LOG_INFO, "finished loading recording");
+  }
+  buffer = 0; //next time refresh buffer
+  
+  // loop buffer for updating display
+  for (cRecording recording : bufferrec)
+  {
+    if (std::count(bufferdel.begin(), bufferdel.end(), recording.RecordingId()))
+	{
+        kodi::Log(ADDON_LOG_INFO, "skipping deleted recording(%s)", recording.RecordingId().c_str());
+    } else {
+  // axk339 - END
+			
               kodi::addon::PVRRecording tag;
 
               //There may be cases where series and/or episode are populated withe 0 by default
@@ -733,7 +779,12 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               tag.SetLastPlayedPosition(recording.LastWatchedPosition());
               tag.SetTitle(recording.Title());
               tag.SetEpisodeName(recording.SubTitle());
+			  // axk339 - add reclist buffering
+			  // nrOfRecordings not available anymore... to be resolved in the future
+			  /*
               if (nrOfRecordings > 1 || m_base.GetSettings().UseFolder())
+			  */
+			  // axk339 - END
                 tag.SetDirectory(recording.Title());
 
               m_RecordingsMap[tag.GetRecordingId()] = recording.RecordingFileName();
@@ -748,6 +799,11 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               tag.SetThumbnailPath(str2);
               //tag.SetIconPath(str2);
               // axk339 - END
+			  
+			  // axk339 - add reclist buffering
+			  // buffer also watch time for GetRecordingLastPlayedPosition
+			  bufferwatch[tag.GetRecordingId()] = recording.LastWatchedPosition();
+			  // axk339 - END
 
               /* TODO: PVR API 5.1.0: Implement this */
               tag.SetChannelType(PVR_RECORDING_CHANNEL_TYPE_UNKNOWN);
@@ -756,10 +812,14 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               iNumRecordings++;
             }
           }
+  // axk339 - add reclist buffering			  
+  /*
         }
       }
     }
   }
+  */
+  // axk339 - END  
   auto totalTime = std::chrono::system_clock::now() - startTime;
   kodi::Log(ADDON_LOG_INFO, "Retrieving %d recordings took %d milliseconds.", iNumRecordings,
             std::chrono::duration_cast<std::chrono::milliseconds>(totalTime).count());
@@ -783,10 +843,20 @@ PVR_ERROR cPVRClientArgusTV::DeleteRecording(const kodi::addon::PVRRecording& re
   Json::StreamWriterBuilder wbuilder;
   std::string jsonval = Json::writeString(wbuilder, recordingname);
 
+  // axk339 - add reclist buffering		
+  bufferdel.push_back(recinfo.GetRecordingId());
+  buffer = 1;  
+  // axk339 - END  
+  
   if (m_rpc.DeleteRecording(jsonval) >= 0)
   {
     // Trigger XBMC to update it's list
+	// axk339 - add reclist buffering	
+    // update not needed here, bufferdel is enough
+	/*
     kodi::addon::CInstancePVRClient::TriggerRecordingUpdate();
+	*/
+	// axk339 - END
     rc = PVR_ERROR_NO_ERROR;
   }
 
@@ -832,6 +902,19 @@ PVR_ERROR cPVRClientArgusTV::GetRecordingLastPlayedPosition(
   if (!FindRecEntryUNC(recinfo.GetRecordingId(), recordingfilename))
     return PVR_ERROR_SERVER_ERROR;
 
+  // axk339 - add reclist buffering	
+  // use watched-time buffer instead 
+  if (bufferwatch.find(recinfo.GetRecordingId()) == bufferwatch.end()) {
+    kodi::Log(ADDON_LOG_INFO, "Failed to find recording '%s' for last watched position", recordingfilename.c_str());
+    return PVR_ERROR_SERVER_ERROR;
+  } else {
+    position = bufferwatch[recinfo.GetRecordingId()];
+    kodi::Log(ADDON_LOG_DEBUG, "GetRecordingLastPlayedPosition(index=%s [%s]) set to %d.\n", recinfo.GetRecordingId().c_str(), recordingfilename.c_str(), position);
+    return PVR_ERROR_NO_ERROR;
+  }  
+  buffer = 0; //next time refresh buffer
+  // axk339 - END
+  
   kodi::Log(ADDON_LOG_DEBUG, "->GetRecordingLastPlayedPosition(index=%s [%s])",
             recinfo.GetRecordingId().c_str(), recordingfilename.c_str());
 
