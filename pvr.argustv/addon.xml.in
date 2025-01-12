@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
-  id="pvr.argustv"
+  id="pvr.argustv.custom"
   version="21.1.1"
   name="ARGUS TV client custom"
   provider-name="Fred Hoogduin, Marcel Groothuis, axk339">

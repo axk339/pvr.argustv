@@ -1,4 +1,5 @@
 /*
+*   Copyright (C) 2021-2025 axk339 (https://github.com/axk339)
  *  Copyright (C) 2020-2021 Team Kodi (https://kodi.tv)
  *  Copyright (C) 2014 Fred Hoogduin
  *  Copyright (C) 2010 Marcel Groothuis
@@ -735,6 +736,14 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 
               /* TODO: PVR API 5.0.0: Implement this */
               tag.SetChannelUid(PVR_CHANNEL_INVALID_UID);
+
+              // axk339 - fix thumbbails
+              std::string str1 = recording.RecordingFileName();
+              std::size_t pos  = str1.find(".", str1.length() - 5);
+              std::string str2 = str1.replace(pos, str1.length()-pos, ".thmb");
+              tag.SetThumbnailPath(str2);
+              //tag.SetIconPath(str2);
+              // axk339 - END
 
               /* TODO: PVR API 5.1.0: Implement this */
               tag.SetChannelType(PVR_RECORDING_CHANNEL_TYPE_UNKNOWN);
