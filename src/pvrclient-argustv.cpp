@@ -682,7 +682,7 @@ PVR_ERROR cPVRClientArgusTV::GetRecordingsAmount(bool deleted, int& amount)
 int buffer;
 std::vector<cRecording> bufferrec;
 std::vector<std::string> bufferdel;
-std::string bufferspace;
+// std::string bufferspace; -- not used anymore
 std::map<std::string, int> bufferwatch;
 // axk339 - END
 
@@ -772,20 +772,54 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               tag.SetChannelName(recording.ChannelDisplayName());
               tag.SetLifetime(MAXLIFETIME); //TODO: recording.Lifetime());
               tag.SetPriority(recording.SchedulePriority());
+			  // axk339 - improve info display
+			  // use program start time instead of recording start time for display
+			  /*
               tag.SetRecordingTime(recording.RecordingStartTime());
-              tag.SetDuration(recording.RecordingStopTime() - recording.RecordingStartTime());
-              tag.SetPlot(recording.Description());
+			  */
+			  tag.SetRecordingTime(recording.ProgramStartTime());
+			  int duration = recording.ProgramStopTime() - recording.ProgramStartTime(); // for usage in plot (see below)
+			  // axk339 - END
+              tag.SetDuration(recording.RecordingStopTime() - recording.RecordingStartTime());			  
+			  // axk339 - improve info display	
+			  // add more details to plot description
+			  // TODO: use also line above description in skin > need to identify correct tag
+			  /*
+			  tag.SetPlot(recording.Description());
+			  */
+              std::string str1;
+			  std::string str2;
+			  time_t rawtime;
+			  struct tm * timeinfo;
+			  char buffer[80];
+			  str1 = " (" + std::to_string(duration/60) + "min)";			  
+			  if (recording.LastWatchedTime() > 0)
+			  {
+				rawtime = recording.LastWatchedTime();
+				timeinfo = localtime(&rawtime);
+				strftime (buffer,80,"%d.%m.%Y %H:%M",timeinfo);
+				str2 = "Gesehen " + std::string(buffer) + ", " + std::to_string(recording.FullyWatchedCount()) + "x komplett";
+			  } else {
+				str2 = "Noch nicht gesehen";
+			  }
+			  //https://kodi.wiki/view/InfoLabels#ListItem
+			  //https://kodi.wiki/view/Label_Formatting
+			  tag.SetPlot("[B]" + recording.ChannelDisplayName() + "[/B]" + str1 + "[CR][I]" + str2 + "[/I][CR]" + recording.Description());
+			  // axk339 - END
+			  
               tag.SetPlayCount(recording.FullyWatchedCount());
               tag.SetLastPlayedPosition(recording.LastWatchedPosition());
               tag.SetTitle(recording.Title());
               tag.SetEpisodeName(recording.SubTitle());
-			  // axk339 - add reclist buffering
+			  // axk339 - improve info display
+			  // use schedule name instead of title
 			  // nrOfRecordings not available anymore... to be resolved in the future
 			  /*
               if (nrOfRecordings > 1 || m_base.GetSettings().UseFolder())
-			  */
-			  // axk339 - END
                 tag.SetDirectory(recording.Title());
+			  */
+			  tag.SetDirectory(recording.ScheduleName());
+			  // axk339 - END
 
               m_RecordingsMap[tag.GetRecordingId()] = recording.RecordingFileName();
 
@@ -793,9 +827,9 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               tag.SetChannelUid(PVR_CHANNEL_INVALID_UID);
 
               // axk339 - fix thumbbails
-              std::string str1 = recording.RecordingFileName();
+              str1 = recording.RecordingFileName();   // str1+str2 now declared above already
               std::size_t pos  = str1.find(".", str1.length() - 5);
-              std::string str2 = str1.replace(pos, str1.length()-pos, ".thmb");
+              str2 = str1.replace(pos, str1.length()-pos, ".thmb");
               tag.SetThumbnailPath(str2);
               //tag.SetIconPath(str2);
               // axk339 - END
