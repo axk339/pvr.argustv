@@ -781,36 +781,56 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 			  int duration = recording.ProgramStopTime() - recording.ProgramStartTime(); // for usage in plot (see below)
 			  // axk339 - END
               tag.SetDuration(recording.RecordingStopTime() - recording.RecordingStartTime());			  
-			  // axk339 - improve info display	
-			  // add more details to plot description
-			  // TODO: use also line above description in skin > need to identify correct tag
-			  /*
 			  tag.SetPlot(recording.Description());
-			  */
+			  
+			  // axk339 - improve info display	
+			  // add more details to plot description, see below OSCM-skin (https://github.com/osmc/skin.osmc) 'PVRDescription' variable definition:
+			  // <variable name="PVRDescription">
+			  //   <value>$INFO[ListItem.Title,[B],[/B][CR][CR]]$INFO[ListItem.EpisodeName,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Genre,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Plot]</value>
+			  // </variable>
               std::string str1;
 			  std::string str2;
 			  time_t rawtime;
 			  struct tm * timeinfo;
 			  char buffer[80];
-			  str1 = " (" + std::to_string(duration/60) + "min)";			  
+			  str1 = " (" + std::to_string(duration/60) + "min)";
+			  tag.SetEpisodeName(recording.ChannelDisplayName() + str1);		  
+			  
 			  if (recording.LastWatchedTime() > 0)
 			  {
 				rawtime = recording.LastWatchedTime();
 				timeinfo = localtime(&rawtime);
-				strftime (buffer,80,"%d.%m.%Y %H:%M",timeinfo);
-				str2 = "Gesehen " + std::string(buffer) + ", " + std::to_string(recording.FullyWatchedCount()) + "x komplett";
+				strftime (buffer,80,"%e. %b %H",timeinfo);
+				str1 = "Gesehen " + std::string(buffer) + " Uhr, " + std::to_string(recording.FullyWatchedCount()) + "x komplett";
 			  } else {
-				str2 = "Noch nicht gesehen";
+				str1 = "Noch nicht gesehen";
 			  }
+			  if (recording.KeepUntilMode() == CArgusTV::UntilSpaceIsNeeded) str2 = "[CR][COLOR gray]Behalten bis Platz benötigt wird[/COLOR]";
+			  if (recording.KeepUntilMode() == CArgusTV::Forever)            str2 = "";
+			  if (recording.KeepUntilMode() == CArgusTV::NumberOfDays) {
+			    if (recording.KeepUntilValue() == 1) str2 = "[CR][COLOR gray]Für 1 Tag behalten[/COLOR]";
+			    else str2 = "[CR][COLOR gray]Für " + std::to_string(recording.KeepUntilValue()) + " Tage behalten[/COLOR]";
+			  }
+			  if (recording.KeepUntilMode() == CArgusTV::NumberOfEpisodes){
+			    if (recording.KeepUntilValue() == 1) str2 = "[CR][COLOR gray]1 Aufnahme behalten[/COLOR]";
+			    else str2 = "[CR][COLOR gray]" + std::to_string(recording.KeepUntilValue()) + " Aufnahmen behalten[/COLOR]";
+			  }
+
 			  //https://kodi.wiki/view/InfoLabels#ListItem
-			  //https://kodi.wiki/view/Label_Formatting
-			  tag.SetPlot("[B]" + recording.ChannelDisplayName() + "[/B]" + str1 + "[CR][I]" + str2 + "[/I][CR]" + recording.Description());
+			  //https://kodi.wiki/view/Label_Formatting			  
+			  tag.SetGenreType(EPG_GENRE_USE_STRING);
+			  tag.SetGenreDescription("[I]" + str1 + "[/I]" + str2);
 			  // axk339 - END
 			  
               tag.SetPlayCount(recording.FullyWatchedCount());
               tag.SetLastPlayedPosition(recording.LastWatchedPosition());
               tag.SetTitle(recording.Title());
-              tag.SetEpisodeName(recording.SubTitle());
+			  // axk339 - improve info display	
+			  // used above for detailed description instead
+              /*
+			  tag.SetEpisodeName(recording.SubTitle());
+			  */
+			  // axk339 - END
 			  // axk339 - improve info display
 			  // use schedule name instead of title
 			  // nrOfRecordings not available anymore... to be resolved in the future
