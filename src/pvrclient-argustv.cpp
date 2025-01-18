@@ -696,6 +696,10 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
   m_RecordingsMap.clear();
   
   // axk339 - add reclist buffering
+  // todo: unclear when thus is called fir refresh...
+  //       maybe could be good to reload beliw each time (but in parallel thread)
+  //       ...but makes only sense when regularly called
+  //       could at least update watch buffer when pressing 'stop'
   /*
   kodi::Log(ADDON_LOG_DEBUG, "RequestRecordingsList()");
   */
