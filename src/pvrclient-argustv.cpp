@@ -781,20 +781,22 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 			  int duration = recording.ProgramStopTime() - recording.ProgramStartTime(); // for usage in plot (see below)
 			  // axk339 - END
               tag.SetDuration(recording.RecordingStopTime() - recording.RecordingStartTime());			  
-			  tag.SetPlot(recording.Description());
 			  
 			  // axk339 - improve info display	
 			  // add more details to plot description, see below OSCM-skin (https://github.com/osmc/skin.osmc) 'PVRDescription' variable definition:
 			  // <variable name="PVRDescription">
-			  //   <value>$INFO[ListItem.Title,[B],[/B][CR][CR]]$INFO[ListItem.EpisodeName,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Genre,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Plot]</value>
+			  //   New: <value>$INFO[ListItem.Title,[B],[/B][CR][CR]]$INFO[ListItem.Plot]</value>
+			  //   Org: <value>$INFO[ListItem.Title,[B],[/B][CR][CR]]$INFO[ListItem.EpisodeName,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Genre,[LIGHT],[/LIGHT][CR][CR]]$INFO[ListItem.Plot]</value>
 			  // </variable>
+			  
+              std::string str0;
               std::string str1;
 			  std::string str2;
 			  time_t rawtime;
 			  struct tm * timeinfo;
 			  char buffer[80];
-			  str1 = " (" + std::to_string(duration/60) + "min)";
-			  tag.SetEpisodeName(recording.ChannelDisplayName() + str1);		  
+			  
+			  str0 = recording.ChannelDisplayName() + " (" + std::to_string(duration/60) + "min)";
 			  
 			  if (recording.LastWatchedTime() > 0)
 			  {
@@ -805,6 +807,7 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 			  } else {
 				str1 = "Noch nicht gesehen";
 			  }
+			  
 			  if (recording.KeepUntilMode() == CArgusTV::UntilSpaceIsNeeded) str2 = "[CR][COLOR gray]Behalten bis Platz benötigt wird[/COLOR]";
 			  if (recording.KeepUntilMode() == CArgusTV::Forever)            str2 = "";
 			  if (recording.KeepUntilMode() == CArgusTV::NumberOfDays) {
@@ -818,8 +821,10 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
 
 			  //https://kodi.wiki/view/InfoLabels#ListItem
 			  //https://kodi.wiki/view/Label_Formatting			  
-			  tag.SetGenreType(EPG_GENRE_USE_STRING);
-			  tag.SetGenreDescription("[I]" + str1 + "[/I]" + str2);
+			  /*
+			  tag.SetPlot(recording.Description());
+			  */
+			  tag.SetPlot(str0 +"[CR][CR][I]"+ str1 + str2 +"[/I][CR][CR]"+ recording.Description());
 			  // axk339 - END
 			  
               tag.SetPlayCount(recording.FullyWatchedCount());
@@ -1801,7 +1806,7 @@ bool cPVRClientArgusTV::OpenRecordedStream(const kodi::addon::PVRRecording& reci
   strftime (buffer,80,"%Y-%m",timeinfo);
   
   std::ofstream outfile;
-  outfile.open("home/osmc/history/playlist.OSMC." + std::string(buffer) + ".txt", std::ios_base::app); // append instead of overwrite
+  outfile.open("home/osmc/share/history/playlist.OSMC." + std::string(buffer) + ".txt", std::ios_base::app); // append instead of overwrite
   
   strftime (buffer,80,"%d.%m.%Y %H:%M:%S",timeinfo);
   str1 = std::string(buffer);

@@ -2,7 +2,7 @@
 <addon
   id="pvr.argustv.custom"
   version="21.1.1"
-  name="ARGUS TV client custom"
+  name="ARGUS TV client"
   provider-name="Fred Hoogduin, Marcel Groothuis, axk339">
   <requires>@ADDON_DEPENDS@</requires>
   <extension
