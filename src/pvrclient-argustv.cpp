@@ -696,8 +696,8 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
   m_RecordingsMap.clear();
   
   // axk339 - add reclist buffering
-  // todo: unclear when thus is called fir refresh...
-  //       maybe could be good to reload beliw each time (but in parallel thread)
+  // todo: unclear when thus is called for refresh...
+  //       maybe could be good to reload below each time (but in parallel thread)
   //       ...but makes only sense when regularly called
   //       could at least update watch buffer when pressing 'stop'
   /*
@@ -834,12 +834,8 @@ PVR_ERROR cPVRClientArgusTV::GetRecordings(bool deleted,
               tag.SetPlayCount(recording.FullyWatchedCount());
               tag.SetLastPlayedPosition(recording.LastWatchedPosition());
               tag.SetTitle(recording.Title());
-			  // axk339 - improve info display	
-			  // used above for detailed description instead
-              /*
 			  tag.SetEpisodeName(recording.SubTitle());
-			  */
-			  // axk339 - END
+			  
 			  // axk339 - improve info display
 			  // use schedule name instead of title
 			  // nrOfRecordings not available anymore... to be resolved in the future
